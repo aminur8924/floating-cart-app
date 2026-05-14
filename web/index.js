@@ -6,15 +6,22 @@ import { billingRouter } from "./routes/billing.js";
 import { settingsRouter } from "./routes/settings.js";
 import { webhooksRouter } from "./routes/webhooks.js";
 
-const PORT = parseInt(process.env.BACKEND_PORT || process.env.PORT || "3000", 10);
+const PORT = Number(process.env.PORT || 3000);
 
-const APP_URL = process.env.SHOPIFY_APP_URL || "https://floating-cart-app.onrender.com";
+const APP_URL =
+  process.env.SHOPIFY_APP_URL || "https://floating-cart-app.onrender.com";
+
+const HOST_NAME = APP_URL.replace("https://", "").replace("http://", "");
+
+console.log("APP_URL:", APP_URL);
+console.log("HOST_NAME:", HOST_NAME);
 
 const shopify = shopifyApp({
   apiKey: process.env.SHOPIFY_API_KEY,
   apiSecretKey: process.env.SHOPIFY_API_SECRET,
-  scopes: process.env.SCOPES?.split(","),
-  hostName: APP_URL.replace(/^https?:\/\//, ""),
+  scopes: process.env.SCOPES.split(","),
+  hostName: HOST_NAME,
+  hostScheme: "https",
   appUrl: APP_URL,
   sessionStorage: new SQLiteSessionStorage("./database.sqlite"),
   billing: {
@@ -30,7 +37,6 @@ const shopify = shopifyApp({
 const app = express();
 app.use(express.json());
 
-// Shopify Auth
 app.get(shopify.config.auth.path, shopify.auth.begin());
 app.get(
   shopify.config.auth.callbackPath,
@@ -38,20 +44,19 @@ app.get(
   shopify.redirectToShopifyOrAppRoot()
 );
 
-// Webhooks
 app.post("/api/webhooks/*", webhooksRouter);
 
-// Authenticated routes
 app.use("/api/*", shopify.validateAuthenticatedSession());
 app.use("/api/billing", billingRouter(shopify));
 app.use("/api/settings", settingsRouter(shopify));
 
-// Serve frontend
 app.use(shopify.cspHeaders());
-app.use(express.static("../frontend/dist"));
+app.use(express.static("frontend/dist"));
 
-app.listen(PORT, () => {
-  console.log(`🚀 Floating Cart App running on port ${PORT}`);
+app.get("*", (req, res) => {
+  res.sendFile("index.html", { root: "frontend/dist" });
 });
 
-export { shopify };
+app.listen(PORT, () => {
+  console.log(`Floating Cart App running on port ${PORT}`);
+});
