@@ -119,70 +119,10 @@ export function settingsRouter(shopify) {
 
       /* -----------------------------
          Free Plan Restrictions
-      
+      ----------------------------- */
 
-      if (!isPro) {
-        settings = {
-          ...settings,
-
-          /* Free Features */
-
-          buttonSize:
-            settings.buttonSize,
-
-          showBadge:
-            settings.showBadge,
-
-          animation:
-            settings.animation,
-
-          cartDrawer:
-            settings.cartDrawer,
-
-          /* Locked Features */
-
-          buttonShape: "circle",
-
-          iconType: "default",
-
-          customEmoji: "🛍️",
-
-          customIconUrl: "",
-
-          effect: "none",
-
-          position:
-            "bottom-right",
-
-          buttonColor:
-            "#000000",
-
-          badgeColor:
-            "#ff0000",
-
-          autoMatchTheme:
-            true,
-
-          showMobile: true,
-
-          showDesktop: true,
-
-          hidePages: "/checkout",
-
-          freeShippingEnabled:
-            false,
-
-          freeShippingThreshold:
-            50,
-
-          discountEnabled:
-            false,
-
-          checkoutText:
-            "Checkout",
-        };
-      }
- ----------------------------- */
+       
+ 
       /* -----------------------------
          Save Metafield
       ----------------------------- */
