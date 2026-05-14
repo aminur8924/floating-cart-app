@@ -6,141 +6,70 @@ const METAFIELD_KEY = "settings";
 export function settingsRouter(shopify) {
   const router = Router();
 
-  /* ---------------------------------------
-     GET SETTINGS
-  --------------------------------------- */
-
   router.get("/", async (req, res) => {
     try {
-      const session =
-        res.locals.shopify.session;
+      const session = res.locals.shopify.session;
+      const client = new shopify.api.clients.Graphql({ session });
 
-      const client =
-        new shopify.api.clients.Graphql({
-          session,
-        });
-
-      const response =
-        await client.query({
-          data: `{
-            shop {
-              metafield(
-                namespace: "${METAFIELD_NAMESPACE}",
-                key: "${METAFIELD_KEY}"
-              ) {
-                value
-              }
+      const response = await client.query({
+        data: `{
+          shop {
+            id
+            metafield(namespace: "${METAFIELD_NAMESPACE}", key: "${METAFIELD_KEY}") {
+              value
             }
-          }`,
-        });
+          }
+        }`,
+      });
 
-      const metafield =
-        response.body.data.shop.metafield;
+      const metafield = response.body.data.shop.metafield;
 
-      const settings =
-        metafield
-          ? JSON.parse(
-              metafield.value
-            )
-          : getDefaultSettings();
+      const settings = metafield?.value
+        ? JSON.parse(metafield.value)
+        : getDefaultSettings();
 
-      res.json(settings);
+      res.json({
+        ...getDefaultSettings(),
+        ...settings,
+        isPro: true,
+      });
     } catch (error) {
-      console.error(
-        "[Settings GET Error]",
-        error
-      );
-
+      console.error("[Settings GET Error]", error);
       res.status(500).json({
-        error:
-          error.message ||
-          "Could not load settings",
+        error: error.message || "Could not load settings",
       });
     }
   });
 
-  /* ---------------------------------------
-     SAVE SETTINGS
-  --------------------------------------- */
-
   router.post("/", async (req, res) => {
     try {
-      const session =
-        res.locals.shopify.session;
+      const session = res.locals.shopify.session;
+      const client = new shopify.api.clients.Graphql({ session });
 
-      const client =
-        new shopify.api.clients.Graphql({
-          session,
-        });
+      const shopResponse = await client.query({
+        data: `{
+          shop {
+            id
+          }
+        }`,
+      });
 
-      /* -----------------------------
-         Billing Check
-      ----------------------------- */
+      const shopId = shopResponse.body.data.shop.id;
 
-      let isPro = false;
-
-      try {
-        const billingResponse =
-          await client.query({
-            data: `{
-              currentAppInstallation {
-                activeSubscriptions {
-                  name
-                  status
-                }
-              }
-            }`,
-          });
-
-        const subscriptions =
-          billingResponse.body.data
-            .currentAppInstallation
-            .activeSubscriptions || [];
-
-        isPro = subscriptions.some(
-          (sub) =>
-            sub.status === "ACTIVE"
-        );
-      } catch (e) {
-        console.warn(
-          "[Billing Check Failed]",
-          e
-        );
-      }
-
-      /* -----------------------------
-         Incoming Settings
-      ----------------------------- */
-
-      let settings = {
+      const settings = {
         ...getDefaultSettings(),
         ...req.body,
       };
 
-      /* -----------------------------
-         Free Plan Restrictions
-      ----------------------------- */
-
-       
- 
-      /* -----------------------------
-         Save Metafield
-      ----------------------------- */
-
-      await client.query({
+      const saveResponse = await client.query({
         data: {
           query: `
-            mutation metafieldsSet(
-              $metafields: [MetafieldsSetInput!]!
-            ) {
-              metafieldsSet(
-                metafields: $metafields
-              ) {
+            mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
+              metafieldsSet(metafields: $metafields) {
                 metafields {
                   key
                   value
                 }
-
                 userErrors {
                   field
                   message
@@ -148,45 +77,37 @@ export function settingsRouter(shopify) {
               }
             }
           `,
-
           variables: {
             metafields: [
               {
-                ownerId: `gid://shopify/Shop/${session.shop}`,
-
-                namespace:
-                  METAFIELD_NAMESPACE,
-
-                key:
-                  METAFIELD_KEY,
-
+                ownerId: shopId,
+                namespace: METAFIELD_NAMESPACE,
+                key: METAFIELD_KEY,
                 type: "json",
-
-                value:
-                  JSON.stringify(
-                    settings
-                  ),
+                value: JSON.stringify(settings),
               },
             ],
           },
         },
       });
 
+      const errors = saveResponse.body.data.metafieldsSet.userErrors;
+
+      if (errors && errors.length > 0) {
+        return res.status(400).json({
+          error: errors.map((e) => e.message).join(", "),
+        });
+      }
+
       res.json({
         success: true,
-        isPro,
+        isPro: true,
         settings,
       });
     } catch (error) {
-      console.error(
-        "[Settings SAVE Error]",
-        error
-      );
-
+      console.error("[Settings SAVE Error]", error);
       res.status(500).json({
-        error:
-          error.message ||
-          "Could not save settings",
+        error: error.message || "Could not save settings",
       });
     }
   });
@@ -194,64 +115,33 @@ export function settingsRouter(shopify) {
   return router;
 }
 
-/* ---------------------------------------
-   DEFAULT SETTINGS
---------------------------------------- */
-
 function getDefaultSettings() {
   return {
-    /* Basic */
-
     buttonSize: "60",
-
     showBadge: true,
-
     animation: "bounce",
-
     position: "bottom-right",
-
     buttonColor: "#000000",
-
     badgeColor: "#ff0000",
-
     autoMatchTheme: true,
-
     cartDrawer: true,
 
-    /* Design */
-
     buttonShape: "circle",
-
     iconType: "default",
-
     customEmoji: "🛍️",
-
     customIconUrl: "",
-
     effect: "none",
 
-    /* Visibility */
-
     showMobile: true,
-
     showDesktop: true,
-
     hidePages: "/checkout",
 
-    /* Drawer */
-
     freeShippingEnabled: true,
-
     freeShippingThreshold: 50,
-
     discountEnabled: true,
-
     checkoutText: "Checkout",
 
-    /* Analytics */
-
     clickCount: 0,
-
     drawerOpenCount: 0,
   };
 }
