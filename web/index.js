@@ -12,6 +12,7 @@ const shopify = shopifyApp({
   apiKey: process.env.SHOPIFY_API_KEY,
   apiSecretKey: process.env.SHOPIFY_API_SECRET,
   scopes: process.env.SCOPES?.split(","),
+  hostName: process.env.SHOPIFY_APP_URL.replace(/^https?:\/\//, ""),
   appUrl: process.env.SHOPIFY_APP_URL,
   sessionStorage: new SQLiteSessionStorage("./database.sqlite"),
   billing: {
