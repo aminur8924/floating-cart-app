@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express from "express";
 import { shopifyApp } from "@shopify/shopify-app-express";
 import { SQLiteSessionStorage } from "@shopify/shopify-app-session-storage-sqlite";
