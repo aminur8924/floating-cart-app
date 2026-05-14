@@ -119,7 +119,7 @@ export function settingsRouter(shopify) {
 
       /* -----------------------------
          Free Plan Restrictions
-      ----------------------------- */
+      
 
       if (!isPro) {
         settings = {
@@ -182,7 +182,7 @@ export function settingsRouter(shopify) {
             "Checkout",
         };
       }
-
+ ----------------------------- */
       /* -----------------------------
          Save Metafield
       ----------------------------- */

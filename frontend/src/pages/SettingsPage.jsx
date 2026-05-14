@@ -62,7 +62,7 @@ export default function SettingsPage() {
   }, []);
 
   const [settings, setSettings] = useState(defaultSettings);
-  const [isPro, setIsPro] = useState(false);
+  const [isPro, setIsPro] = useState(true);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
