@@ -6,24 +6,37 @@ import { billingRouter } from "./routes/billing.js";
 import { settingsRouter } from "./routes/settings.js";
 import { webhooksRouter } from "./routes/webhooks.js";
 
-const PORT = Number(process.env.PORT || 3000);
+const PORT = Number(process.env.PORT || process.env.BACKEND_PORT || 3000);
 
 const APP_URL =
   process.env.SHOPIFY_APP_URL || "https://floating-cart-app.onrender.com";
 
-const HOST_NAME = APP_URL.replace("https://", "").replace("http://", "");
+const HOST_NAME = APP_URL.replace(/^https?:\/\//, "").replace(/\/$/, "");
 
 console.log("APP_URL:", APP_URL);
 console.log("HOST_NAME:", HOST_NAME);
 
 const shopify = shopifyApp({
-  apiKey: process.env.SHOPIFY_API_KEY,
-  apiSecretKey: process.env.SHOPIFY_API_SECRET,
-  scopes: process.env.SCOPES.split(","),
-  hostName: HOST_NAME,
-  hostScheme: "https",
-  appUrl: APP_URL,
+  api: {
+    apiKey: process.env.SHOPIFY_API_KEY,
+    apiSecretKey: process.env.SHOPIFY_API_SECRET,
+    scopes: process.env.SCOPES.split(","),
+    hostName: HOST_NAME,
+    hostScheme: "https",
+    isEmbeddedApp: true,
+  },
+
+  auth: {
+    path: "/api/auth",
+    callbackPath: "/api/auth/callback",
+  },
+
+  webhooks: {
+    path: "/api/webhooks",
+  },
+
   sessionStorage: new SQLiteSessionStorage("./database.sqlite"),
+
   billing: {
     "Floating Cart Pro": {
       amount: 1.99,
@@ -35,9 +48,11 @@ const shopify = shopifyApp({
 });
 
 const app = express();
+
 app.use(express.json());
 
 app.get(shopify.config.auth.path, shopify.auth.begin());
+
 app.get(
   shopify.config.auth.callbackPath,
   shopify.auth.callback(),
@@ -47,10 +62,12 @@ app.get(
 app.post("/api/webhooks/*", webhooksRouter);
 
 app.use("/api/*", shopify.validateAuthenticatedSession());
+
 app.use("/api/billing", billingRouter(shopify));
 app.use("/api/settings", settingsRouter(shopify));
 
 app.use(shopify.cspHeaders());
+
 app.use(express.static("frontend/dist"));
 
 app.get("*", (req, res) => {
