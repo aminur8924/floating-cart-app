@@ -7,7 +7,6 @@ import {
   TextField,
   Select,
   Checkbox,
-  Button,
   Banner,
   Badge,
   BlockStack,
@@ -17,7 +16,6 @@ import {
   Box,
   Spinner,
 } from "@shopify/polaris";
-import { useAppBridge } from "@shopify/app-bridge-react";
 
 const defaultSettings = {
   buttonSize: "60",
@@ -28,17 +26,14 @@ const defaultSettings = {
   badgeColor: "#ff0000",
   autoMatchTheme: true,
   cartDrawer: true,
-
   buttonShape: "circle",
   iconType: "default",
   customEmoji: "🛍️",
   customIconUrl: "",
   effect: "none",
-
   showMobile: true,
   showDesktop: true,
   hidePages: "/checkout",
-
   freeShippingEnabled: true,
   freeShippingThreshold: 50,
   discountEnabled: true,
@@ -46,22 +41,25 @@ const defaultSettings = {
 };
 
 export default function SettingsPage() {
-  const shopify = useAppBridge();
+  const authenticatedFetch = useCallback(async (url, options = {}) => {
+    let token = "";
 
-  const authenticatedFetch = useCallback(
-    async (url, options = {}) => {
-      const token = await shopify.idToken();
+    try {
+      if (window.shopify && window.shopify.idToken) {
+        token = await window.shopify.idToken();
+      }
+    } catch (e) {
+      console.warn("Could not get Shopify token", e);
+    }
 
-      return window.fetch(url, {
-        ...options,
-        headers: {
-          ...(options.headers || {}),
-          Authorization: `Bearer ${token}`,
-        },
-      });
-    },
-    [shopify]
-  );
+    return window.fetch(url, {
+      ...options,
+      headers: {
+        ...(options.headers || {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+  }, []);
 
   const [settings, setSettings] = useState(defaultSettings);
   const [isPro, setIsPro] = useState(false);
@@ -78,8 +76,11 @@ export default function SettingsPage() {
           authenticatedFetch("/api/settings"),
         ]);
 
-        const billing = await billingRes.json();
-        const savedSettings = await settingsRes.json();
+        const billingText = await billingRes.text();
+        const settingsText = await settingsRes.text();
+
+        const billing = billingText ? JSON.parse(billingText) : {};
+        const savedSettings = settingsText ? JSON.parse(settingsText) : {};
 
         setIsPro(Boolean(billing.isPro));
         setSettings((prev) => ({
@@ -87,7 +88,8 @@ export default function SettingsPage() {
           ...savedSettings,
         }));
       } catch (err) {
-        setError("Could not load settings.");
+        console.error(err);
+        setError("Could not load settings. Please refresh the page.");
       } finally {
         setLoading(false);
       }
@@ -129,7 +131,8 @@ export default function SettingsPage() {
         body: JSON.stringify(settings),
       });
 
-      const data = await res.json();
+      const text = await res.text();
+      const data = text ? JSON.parse(text) : {};
 
       if (!res.ok) {
         throw new Error(data.error || "Save failed");
@@ -137,12 +140,13 @@ export default function SettingsPage() {
 
       setSettings((prev) => ({
         ...prev,
-        ...data.settings,
+        ...(data.settings || {}),
       }));
 
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (err) {
+      console.error(err);
       setError(err.message || "Could not save settings.");
     } finally {
       setSaving(false);
@@ -155,12 +159,14 @@ export default function SettingsPage() {
         method: "POST",
       });
 
-      const data = await res.json();
+      const text = await res.text();
+      const data = text ? JSON.parse(text) : {};
 
       if (data.confirmationUrl) {
         window.top.location.href = data.confirmationUrl;
       }
     } catch (err) {
+      console.error(err);
       setError("Could not start billing.");
     }
   }, [authenticatedFetch]);
@@ -469,8 +475,8 @@ export default function SettingsPage() {
             <Text tone="subdued">
               Shape: <strong>{settings.buttonShape}</strong> · Icon:{" "}
               <strong>{settings.iconType}</strong> · Drawer:{" "}
-              <strong>{settings.cartDrawer ? "Enabled" : "Disabled"}</strong> ·
-              Free shipping:{" "}
+              <strong>{settings.cartDrawer ? "Enabled" : "Disabled"}</strong>{" "}
+              · Free shipping:{" "}
               <strong>
                 {settings.freeShippingEnabled
                   ? `$${settings.freeShippingThreshold}`
