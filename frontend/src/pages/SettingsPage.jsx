@@ -1,23 +1,8 @@
 import { useState, useCallback, useEffect } from "react";
 import {
-  Page,
-  Layout,
-  Card,
-  FormLayout,
-  TextField,
-  Select,
-  Checkbox,
-  Button,
-  Banner,
-  Badge,
-  BlockStack,
-  InlineStack,
-  Text,
-  Divider,
-  Box,
-  Spinner,
+  Page, Layout, Card, FormLayout, TextField, Select, Checkbox,
+  Button, Banner, Badge, BlockStack, InlineStack, Text, Divider, Box, Spinner,
 } from "@shopify/polaris";
-import { useAuthenticatedFetch } from "@shopify/app-bridge-react";
 
 const defaultSettings = {
   buttonSize: "60",
@@ -28,17 +13,14 @@ const defaultSettings = {
   badgeColor: "#ff0000",
   autoMatchTheme: true,
   cartDrawer: true,
-
   buttonShape: "circle",
   iconType: "default",
   customEmoji: "🛍️",
   customIconUrl: "",
   effect: "none",
-
   showMobile: true,
   showDesktop: true,
   hidePages: "/checkout",
-
   freeShippingEnabled: true,
   freeShippingThreshold: 50,
   discountEnabled: true,
@@ -46,7 +28,7 @@ const defaultSettings = {
 };
 
 export default function SettingsPage() {
-  const fetch = useAuthenticatedFetch();
+  const authenticatedFetch = window.fetch.bind(window);
 
   const [settings, setSettings] = useState(defaultSettings);
   const [isPro, setIsPro] = useState(false);
@@ -59,18 +41,15 @@ export default function SettingsPage() {
     async function loadSettings() {
       try {
         const [billingRes, settingsRes] = await Promise.all([
-          fetch("/api/billing/status"),
-          fetch("/api/settings"),
+          authenticatedFetch("/api/billing/status"),
+          authenticatedFetch("/api/settings"),
         ]);
 
         const billing = await billingRes.json();
         const savedSettings = await settingsRes.json();
 
         setIsPro(Boolean(billing.isPro));
-        setSettings((prev) => ({
-          ...prev,
-          ...savedSettings,
-        }));
+        setSettings((prev) => ({ ...prev, ...savedSettings }));
       } catch (err) {
         setError("Could not load settings.");
       } finally {
@@ -79,25 +58,15 @@ export default function SettingsPage() {
     }
 
     loadSettings();
-  }, [fetch]);
+  }, []);
 
   const update = useCallback(
-    (key) => (value) => {
-      setSettings((prev) => ({
-        ...prev,
-        [key]: value,
-      }));
-    },
+    (key) => (value) => setSettings((prev) => ({ ...prev, [key]: value })),
     []
   );
 
   const updateNumber = useCallback(
-    (key) => (value) => {
-      setSettings((prev) => ({
-        ...prev,
-        [key]: Number(value),
-      }));
-    },
+    (key) => (value) => setSettings((prev) => ({ ...prev, [key]: Number(value) })),
     []
   );
 
@@ -106,11 +75,9 @@ export default function SettingsPage() {
     setError("");
 
     try {
-      const res = await fetch("/api/settings", {
+      const res = await authenticatedFetch("/api/settings", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(settings),
       });
 
@@ -120,11 +87,7 @@ export default function SettingsPage() {
         throw new Error(data.error || "Save failed");
       }
 
-      setSettings((prev) => ({
-        ...prev,
-        ...data.settings,
-      }));
-
+      setSettings((prev) => ({ ...prev, ...data.settings }));
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (err) {
@@ -132,19 +95,16 @@ export default function SettingsPage() {
     } finally {
       setSaving(false);
     }
-  }, [fetch, settings]);
+  }, [authenticatedFetch, settings]);
 
   const handleUpgrade = useCallback(async () => {
-    const res = await fetch("/api/billing/subscribe", {
-      method: "POST",
-    });
-
+    const res = await authenticatedFetch("/api/billing/subscribe", { method: "POST" });
     const data = await res.json();
 
     if (data.confirmationUrl) {
       window.top.location.href = data.confirmationUrl;
     }
-  }, [fetch]);
+  }, [authenticatedFetch]);
 
   if (loading) {
     return (
@@ -176,10 +136,7 @@ export default function SettingsPage() {
           <Banner
             title="Pro features are locked"
             tone="info"
-            action={{
-              content: "Start free trial",
-              onAction: handleUpgrade,
-            }}
+            action={{ content: "Start free trial", onAction: handleUpgrade }}
           >
             <p>
               Upgrade to unlock custom icons, colors, drawer tools, discount field,
@@ -188,9 +145,7 @@ export default function SettingsPage() {
           </Banner>
         )}
 
-        {saved && (
-          <Banner title="Settings saved successfully!" tone="success" />
-        )}
+        {saved && <Banner title="Settings saved successfully!" tone="success" />}
 
         {error && (
           <Banner title="Something went wrong" tone="critical">
@@ -460,8 +415,8 @@ export default function SettingsPage() {
             </Text>
 
             <Text tone="subdued">
-              After saving, go to Online Store → Themes → Customize → App
-              embeds and make sure Floating Cart Button is enabled.
+              After saving, go to Online Store → Themes → Customize → App embeds
+              and make sure Floating Cart Button is enabled.
             </Text>
           </BlockStack>
         </Card>
