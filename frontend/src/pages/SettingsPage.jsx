@@ -1,8 +1,23 @@
 import React, { useState, useCallback, useEffect } from "react";
 import {
-  Page, Layout, Card, FormLayout, TextField, Select, Checkbox,
-  Button, Banner, Badge, BlockStack, InlineStack, Text, Divider, Box, Spinner,
+  Page,
+  Layout,
+  Card,
+  FormLayout,
+  TextField,
+  Select,
+  Checkbox,
+  Button,
+  Banner,
+  Badge,
+  BlockStack,
+  InlineStack,
+  Text,
+  Divider,
+  Box,
+  Spinner,
 } from "@shopify/polaris";
+import { useAppBridge } from "@shopify/app-bridge-react";
 
 const defaultSettings = {
   buttonSize: "60",
@@ -13,14 +28,17 @@ const defaultSettings = {
   badgeColor: "#ff0000",
   autoMatchTheme: true,
   cartDrawer: true,
+
   buttonShape: "circle",
   iconType: "default",
   customEmoji: "🛍️",
   customIconUrl: "",
   effect: "none",
+
   showMobile: true,
   showDesktop: true,
   hidePages: "/checkout",
+
   freeShippingEnabled: true,
   freeShippingThreshold: 50,
   discountEnabled: true,
@@ -28,7 +46,22 @@ const defaultSettings = {
 };
 
 export default function SettingsPage() {
-  const authenticatedFetch = window.fetch.bind(window);
+  const shopify = useAppBridge();
+
+  const authenticatedFetch = useCallback(
+    async (url, options = {}) => {
+      const token = await shopify.idToken();
+
+      return window.fetch(url, {
+        ...options,
+        headers: {
+          ...(options.headers || {}),
+          Authorization: `Bearer ${token}`,
+        },
+      });
+    },
+    [shopify]
+  );
 
   const [settings, setSettings] = useState(defaultSettings);
   const [isPro, setIsPro] = useState(false);
@@ -49,7 +82,10 @@ export default function SettingsPage() {
         const savedSettings = await settingsRes.json();
 
         setIsPro(Boolean(billing.isPro));
-        setSettings((prev) => ({ ...prev, ...savedSettings }));
+        setSettings((prev) => ({
+          ...prev,
+          ...savedSettings,
+        }));
       } catch (err) {
         setError("Could not load settings.");
       } finally {
@@ -58,15 +94,25 @@ export default function SettingsPage() {
     }
 
     loadSettings();
-  }, []);
+  }, [authenticatedFetch]);
 
   const update = useCallback(
-    (key) => (value) => setSettings((prev) => ({ ...prev, [key]: value })),
+    (key) => (value) => {
+      setSettings((prev) => ({
+        ...prev,
+        [key]: value,
+      }));
+    },
     []
   );
 
   const updateNumber = useCallback(
-    (key) => (value) => setSettings((prev) => ({ ...prev, [key]: Number(value) })),
+    (key) => (value) => {
+      setSettings((prev) => ({
+        ...prev,
+        [key]: Number(value),
+      }));
+    },
     []
   );
 
@@ -77,7 +123,9 @@ export default function SettingsPage() {
     try {
       const res = await authenticatedFetch("/api/settings", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(settings),
       });
 
@@ -87,7 +135,11 @@ export default function SettingsPage() {
         throw new Error(data.error || "Save failed");
       }
 
-      setSettings((prev) => ({ ...prev, ...data.settings }));
+      setSettings((prev) => ({
+        ...prev,
+        ...data.settings,
+      }));
+
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (err) {
@@ -98,11 +150,18 @@ export default function SettingsPage() {
   }, [authenticatedFetch, settings]);
 
   const handleUpgrade = useCallback(async () => {
-    const res = await authenticatedFetch("/api/billing/subscribe", { method: "POST" });
-    const data = await res.json();
+    try {
+      const res = await authenticatedFetch("/api/billing/subscribe", {
+        method: "POST",
+      });
 
-    if (data.confirmationUrl) {
-      window.top.location.href = data.confirmationUrl;
+      const data = await res.json();
+
+      if (data.confirmationUrl) {
+        window.top.location.href = data.confirmationUrl;
+      }
+    } catch (err) {
+      setError("Could not start billing.");
     }
   }, [authenticatedFetch]);
 
@@ -136,16 +195,21 @@ export default function SettingsPage() {
           <Banner
             title="Pro features are locked"
             tone="info"
-            action={{ content: "Start free trial", onAction: handleUpgrade }}
+            action={{
+              content: "Start free trial",
+              onAction: handleUpgrade,
+            }}
           >
             <p>
-              Upgrade to unlock custom icons, colors, drawer tools, discount field,
-              free shipping progress and advanced visibility controls.
+              Upgrade to unlock custom icons, colors, drawer tools, discount
+              field, free shipping progress and advanced visibility controls.
             </p>
           </Banner>
         )}
 
-        {saved && <Banner title="Settings saved successfully!" tone="success" />}
+        {saved && (
+          <Banner title="Settings saved successfully!" tone="success" />
+        )}
 
         {error && (
           <Banner title="Something went wrong" tone="critical">
@@ -177,7 +241,7 @@ export default function SettingsPage() {
 
                   <Checkbox
                     label="Show cart item badge"
-                    checked={settings.showBadge}
+                    checked={Boolean(settings.showBadge)}
                     onChange={update("showBadge")}
                   />
 
@@ -193,7 +257,7 @@ export default function SettingsPage() {
 
                   <Checkbox
                     label="Enable cart drawer"
-                    checked={settings.cartDrawer}
+                    checked={Boolean(settings.cartDrawer)}
                     onChange={update("cartDrawer")}
                   />
                 </FormLayout>
@@ -297,7 +361,7 @@ export default function SettingsPage() {
                   <Checkbox
                     label="Auto match theme color"
                     disabled={!isPro}
-                    checked={settings.autoMatchTheme}
+                    checked={Boolean(settings.autoMatchTheme)}
                     onChange={update("autoMatchTheme")}
                   />
                 </FormLayout>
@@ -323,7 +387,7 @@ export default function SettingsPage() {
                   <Checkbox
                     label="Enable free shipping progress bar"
                     disabled={!isPro}
-                    checked={settings.freeShippingEnabled}
+                    checked={Boolean(settings.freeShippingEnabled)}
                     onChange={update("freeShippingEnabled")}
                   />
 
@@ -342,7 +406,7 @@ export default function SettingsPage() {
                   <Checkbox
                     label="Enable discount code field"
                     disabled={!isPro}
-                    checked={settings.discountEnabled}
+                    checked={Boolean(settings.discountEnabled)}
                     onChange={update("discountEnabled")}
                   />
 
@@ -374,14 +438,14 @@ export default function SettingsPage() {
                   <Checkbox
                     label="Show on mobile"
                     disabled={!isPro}
-                    checked={settings.showMobile}
+                    checked={Boolean(settings.showMobile)}
                     onChange={update("showMobile")}
                   />
 
                   <Checkbox
                     label="Show on desktop"
                     disabled={!isPro}
-                    checked={settings.showDesktop}
+                    checked={Boolean(settings.showDesktop)}
                     onChange={update("showDesktop")}
                   />
 
