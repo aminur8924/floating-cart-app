@@ -8,12 +8,14 @@ import { webhooksRouter } from "./routes/webhooks.js";
 
 const PORT = parseInt(process.env.BACKEND_PORT || process.env.PORT || "3000", 10);
 
+const APP_URL = process.env.SHOPIFY_APP_URL || "https://floating-cart-app.onrender.com";
+
 const shopify = shopifyApp({
   apiKey: process.env.SHOPIFY_API_KEY,
   apiSecretKey: process.env.SHOPIFY_API_SECRET,
   scopes: process.env.SCOPES?.split(","),
-  hostName: process.env.SHOPIFY_APP_URL.replace(/^https?:\/\//, ""),
-  appUrl: process.env.SHOPIFY_APP_URL,
+  hostName: APP_URL.replace(/^https?:\/\//, ""),
+  appUrl: APP_URL,
   sessionStorage: new SQLiteSessionStorage("./database.sqlite"),
   billing: {
     "Floating Cart Pro": {
