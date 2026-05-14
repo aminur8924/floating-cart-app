@@ -1,0 +1,280 @@
+{% assign settings_metafield = shop.metafields.floating_cart.settings %}
+
+{% if settings_metafield != blank %}
+  {% assign app_settings = settings_metafield.value %}
+{% else %}
+  {% assign app_settings = blank %}
+{% endif %}
+
+{% assign btn_size = block.settings.button_size %}
+{% assign show_badge = block.settings.show_badge %}
+{% assign animation = block.settings.animation %}
+{% assign position = block.settings.position %}
+{% assign btn_color = block.settings.button_color %}
+{% assign badge_color = block.settings.badge_color %}
+{% assign auto_match = block.settings.auto_match_theme %}
+{% assign cart_drawer = block.settings.cart_drawer %}
+{% assign button_shape = block.settings.button_shape %}
+{% assign icon_type = block.settings.icon_type %}
+{% assign custom_emoji = block.settings.custom_emoji %}
+{% assign custom_icon_url = block.settings.custom_icon_url %}
+{% assign effect = block.settings.effect %}
+{% assign show_mobile = block.settings.show_mobile %}
+{% assign show_desktop = block.settings.show_desktop %}
+{% assign hide_pages = block.settings.hide_pages %}
+{% assign free_shipping_enabled = block.settings.free_shipping_enabled %}
+{% assign free_shipping_threshold = block.settings.free_shipping_threshold %}
+{% assign discount_enabled = block.settings.discount_enabled %}
+{% assign checkout_text = block.settings.checkout_text %}
+
+{% if app_settings != blank %}
+  {% assign btn_size = app_settings.buttonSize | default: btn_size %}
+  {% assign show_badge = app_settings.showBadge | default: show_badge %}
+  {% assign animation = app_settings.animation | default: animation %}
+  {% assign position = app_settings.position | default: position %}
+  {% assign btn_color = app_settings.buttonColor | default: btn_color %}
+  {% assign badge_color = app_settings.badgeColor | default: badge_color %}
+  {% assign auto_match = app_settings.autoMatchTheme | default: auto_match %}
+  {% assign cart_drawer = app_settings.cartDrawer | default: cart_drawer %}
+  {% assign button_shape = app_settings.buttonShape | default: button_shape %}
+  {% assign icon_type = app_settings.iconType | default: icon_type %}
+  {% assign custom_emoji = app_settings.customEmoji | default: custom_emoji %}
+  {% assign custom_icon_url = app_settings.customIconUrl | default: custom_icon_url %}
+  {% assign effect = app_settings.effect | default: effect %}
+  {% assign show_mobile = app_settings.showMobile | default: show_mobile %}
+  {% assign show_desktop = app_settings.showDesktop | default: show_desktop %}
+  {% assign hide_pages = app_settings.hidePages | default: hide_pages %}
+  {% assign free_shipping_enabled = app_settings.freeShippingEnabled | default: free_shipping_enabled %}
+  {% assign free_shipping_threshold = app_settings.freeShippingThreshold | default: free_shipping_threshold %}
+  {% assign discount_enabled = app_settings.discountEnabled | default: discount_enabled %}
+  {% assign checkout_text = app_settings.checkoutText | default: checkout_text %}
+{% endif %}
+
+<div
+  id="fc-floating-cart"
+  class="fc-btn fc-pos--{{ position }} fc-shape--{{ button_shape }} fc-anim--{{ animation }} fc-effect--{{ effect }}"
+  data-cart-drawer="{{ cart_drawer }}"
+  data-show-mobile="{{ show_mobile }}"
+  data-show-desktop="{{ show_desktop }}"
+  data-hide-pages="{{ hide_pages }}"
+  data-free-shipping-enabled="{{ free_shipping_enabled }}"
+  data-free-shipping-threshold="{{ free_shipping_threshold }}"
+  data-discount-enabled="{{ discount_enabled }}"
+  data-checkout-text="{{ checkout_text }}"
+  aria-label="View cart"
+  role="button"
+  tabindex="0"
+  style="
+    --fc-size: {{ btn_size }}px;
+    --fc-color: {{ btn_color }};
+    --fc-badge-color: {{ badge_color }};
+    --fc-auto-match: {{ auto_match }};
+  "
+>
+  {% if icon_type == 'emoji' %}
+    <span class="fc-emoji-icon">{{ custom_emoji }}</span>
+  {% elsif icon_type == 'image' and custom_icon_url != blank %}
+    <img class="fc-custom-icon" src="{{ custom_icon_url }}" alt="Cart icon" width="64" height="64">
+  {% else %}
+    <svg class="fc-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
+      <line x1="3" y1="6" x2="21" y2="6"/>
+      <path d="M16 10a4 4 0 01-8 0"/>
+    </svg>
+  {% endif %}
+
+  {% if show_badge %}
+    <span class="fc-badge" id="fc-badge">0</span>
+  {% endif %}
+</div>
+
+{% if cart_drawer %}
+  <div id="fc-drawer-overlay" class="fc-drawer-overlay"></div>
+
+  <div id="fc-drawer" class="fc-drawer">
+    <div class="fc-drawer-header">
+      <h2 class="fc-drawer-title">Your Cart</h2>
+      <button id="fc-drawer-close" class="fc-drawer-close">×</button>
+    </div>
+
+    <div id="fc-free-shipping" class="fc-free-shipping" hidden>
+      <div class="fc-free-shipping-text" id="fc-free-shipping-text"></div>
+      <div class="fc-free-shipping-bar">
+        <div class="fc-free-shipping-fill" id="fc-free-shipping-fill"></div>
+      </div>
+    </div>
+
+    <div class="fc-drawer-body" id="fc-drawer-body">
+      <div class="fc-drawer-loading">Loading cart...</div>
+    </div>
+
+    <div class="fc-discount-box" id="fc-discount-box" hidden>
+      <input id="fc-discount-input" class="fc-discount-input" type="text" placeholder="Discount code">
+      <button id="fc-discount-apply" class="fc-discount-apply">Apply</button>
+    </div>
+
+    <div class="fc-drawer-footer" id="fc-drawer-footer"></div>
+  </div>
+{% endif %}
+
+{{ 'floating-cart.css' | asset_url | stylesheet_tag }}
+<script src="{{ 'floating-cart.js' | asset_url }}" defer></script>
+
+{% schema %}
+{
+  "name": "Floating Cart Button",
+  "target": "body",
+  "settings": [
+    {
+      "type": "range",
+      "id": "button_size",
+      "label": "Button size",
+      "min": 40,
+      "max": 90,
+      "step": 5,
+      "unit": "px",
+      "default": 60
+    },
+    {
+      "type": "checkbox",
+      "id": "show_badge",
+      "label": "Show badge",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "button_shape",
+      "label": "Button shape",
+      "options": [
+        { "value": "circle", "label": "Circle" },
+        { "value": "rounded", "label": "Rounded square" }
+      ],
+      "default": "circle"
+    },
+    {
+      "type": "select",
+      "id": "icon_type",
+      "label": "Icon type",
+      "options": [
+        { "value": "default", "label": "Default" },
+        { "value": "emoji", "label": "Emoji" },
+        { "value": "image", "label": "Image URL" }
+      ],
+      "default": "default"
+    },
+    {
+      "type": "text",
+      "id": "custom_emoji",
+      "label": "Emoji",
+      "default": "🛍️"
+    },
+    {
+      "type": "url",
+      "id": "custom_icon_url",
+      "label": "Custom image URL"
+    },
+    {
+      "type": "select",
+      "id": "effect",
+      "label": "Effect",
+      "options": [
+        { "value": "none", "label": "None" },
+        { "value": "pulse", "label": "Pulse" },
+        { "value": "glow", "label": "Glow" }
+      ],
+      "default": "none"
+    },
+    {
+      "type": "select",
+      "id": "animation",
+      "label": "Animation",
+      "options": [
+        { "value": "bounce", "label": "Bounce" },
+        { "value": "none", "label": "None" }
+      ],
+      "default": "bounce"
+    },
+    {
+      "type": "select",
+      "id": "position",
+      "label": "Position",
+      "options": [
+        { "value": "bottom-right", "label": "Bottom right" },
+        { "value": "bottom-left", "label": "Bottom left" },
+        { "value": "top-right", "label": "Top right" },
+        { "value": "top-left", "label": "Top left" }
+      ],
+      "default": "bottom-right"
+    },
+    {
+      "type": "color",
+      "id": "button_color",
+      "label": "Button color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "badge_color",
+      "label": "Badge color",
+      "default": "#ff0000"
+    },
+    {
+      "type": "checkbox",
+      "id": "auto_match_theme",
+      "label": "Auto match theme",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "cart_drawer",
+      "label": "Enable drawer",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_mobile",
+      "label": "Show on mobile",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_desktop",
+      "label": "Show on desktop",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "hide_pages",
+      "label": "Hide on pages",
+      "default": "/checkout"
+    },
+    {
+      "type": "checkbox",
+      "id": "free_shipping_enabled",
+      "label": "Enable free shipping",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "free_shipping_threshold",
+      "label": "Free shipping threshold",
+      "min": 0,
+      "max": 5000,
+      "step": 50,
+      "default": 50
+    },
+    {
+      "type": "checkbox",
+      "id": "discount_enabled",
+      "label": "Enable discount field",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "checkout_text",
+      "label": "Checkout button text",
+      "default": "Checkout"
+    }
+  ]
+}
+{% endschema %}
